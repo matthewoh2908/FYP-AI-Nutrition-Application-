@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MealAssist</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #C8C8C8;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 32px 16px 64px;
+    }
+
+    /* Phone shell */
+    .phone {
+      width: 100%;
+      max-width: 390px;
+      background: #D4D4D4;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 12px 48px rgba(0,0,0,0.22);
+      min-height: 700px;
+    }
+
+    /* App title */
+    .app-title {
+      text-align: center;
+      font-size: 26px;
+      font-weight: 800;
+      color: #1A1A1A;
+      padding: 24px 20px 18px;
+      letter-spacing: -0.4px;
+    }
+
+    /* Screens */
+    .screen { display: none; padding: 0 16px 28px; }
+    .screen.active { display: block; }
+
+    /* SCREEN 1 (UPLOAD) */
+
+    /* Image placeholder box */
+    .upload-box {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      background: #8A8A8A;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      margin-bottom: 18px;
+      overflow: hidden;
+      transition: opacity 0.15s;
+    }
+    .upload-box:hover { opacity: 0.88; }
+    .upload-box img { width: 100%; height: 100%; object-fit: cover; display: none; }
+    .upload-box img.visible { display: block; }
+    .upload-box .placeholder-icon { color: #fff; opacity: 0.7; }
+    .upload-box .placeholder-icon svg { width: 64px; height: 64px; }
+
+    /* Upload button */
+    .btn-upload {
+      width: 100%;
+      padding: 16px;
+      background: #2D2B55;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      letter-spacing: 0.1px;
+      transition: opacity 0.15s, transform 0.1s;
+      margin-bottom: 24px;
+    }
+    .btn-upload:hover { opacity: 0.9; }
+    .btn-upload:active { transform: scale(0.98); }
+
+    /* Recent images */
+    .recent-label {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1A1A1A;
+      text-decoration: underline;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .recent-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .recent-thumb {
+      aspect-ratio: 1;
+      background: #E8E0A8;
+      border-radius: 10px;
+      overflow: hidden;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.15s;
+    }
+    .recent-thumb:hover { opacity: 0.82; }
+    .recent-thumb img { width: 100%; height: 100%; object-fit: cover; display: none; }
+    .recent-thumb img.visible { display: block; }
+    .recent-thumb .thumb-icon { color: #9A8A40; opacity: 0.7; }
+    .recent-thumb .thumb-icon svg { width: 36px; height: 36px; }
+
+    /* Error banner */
+    .error-banner {
+      display: none;
+      background: #FEE2E2;
+      border: 1px solid #FCA5A5;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 13px;
+      color: #B91C1C;
+      line-height: 1.5;
+      margin-bottom: 14px;
+      gap: 8px;
+      align-items: flex-start;
+    }
+    .error-banner.active { display: flex; }
+    .error-banner svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 1px; }
+
+    /* Hidden file input */
+    #file-input { display: none; }
+
+    /* SCREEN 2 (ANALYSING) */
+    .analyse-preview {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      background: #8A8A8A;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+    .analyse-preview img { width: 100%; height: 100%; object-fit: cover; }
+
+    .task-list { display: flex; flex-direction: column; gap: 14px; }
+
+    .task-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    /* Circle icon on left */
+    .task-icon-wrap {
+      width: 30px;
+      height: 30px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .check-icon { color: #333; }
+    .check-icon svg { width: 26px; height: 26px; }
+
+    .spinner-icon {
+      width: 24px;
+      height: 24px;
+      border: 3px solid #ccc;
+      border-top-color: #888;
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Pill label */
+    .task-pill {
+      flex: 1;
+      padding: 12px 18px;
+      border-radius: 30px;
+      font-size: 14px;
+      font-weight: 700;
+      text-align: center;
+      color: #fff;
+      letter-spacing: 0.2px;
+    }
+    .pill-green  { background: #27AE60; }
+    .pill-yellow { background: #F0B429; color: #1A1A1A; }
+    .pill-pending { background: #BDBDBD; color: #6A6A6A; }
+
+    /* SCREEN 3 (RESULTS) */
+
+    .result-image {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      background: #8A8A8A;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 14px;
+      position: relative;
+    }
+    .result-image img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+    /* Food tag pills */
+    .food-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .food-tag {
+      padding: 7px 18px;
+      border-radius: 30px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #1A1A1A;
+      text-transform: capitalize;
+    }
+
+    /* Cycling colours for food tags to match the wireframe style */
+    .tag-c0 { background: #D4845A; color: #fff; } /* brown-orange  */
+    .tag-c1 { background: #27AE60; color: #fff; } /* green         */
+    .tag-c2 { background: #E8E84A; color: #1A1A1A; } /* yellow      */
+    .tag-c3 { background: #F0F0EC; color: #1A1A1A; border: 1px solid #CCC; } /* off-white */
+    .tag-c4 { background: #E07070; color: #fff; } /* red-pink      */
+    .tag-c5 { background: #5B9BD5; color: #fff; } /* blue          */
+
+    /* Nutrition cards */
+    .nutrition-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .nutrition-card {
+      background: #EFEFEF;
+      border-radius: 10px;
+      padding: 12px 14px;
+    }
+
+    .nutrition-card .nut-label {
+      font-size: 12px;
+      color: #8A8A8A;
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+
+    .nutrition-card .nut-value {
+      font-size: 22px;
+      font-weight: 700;
+      color: #1A1A1A;
+    }
+
+    /* added: meal caption from BLIP */
+    .meal-caption {
+      font-size: 13px;
+      color: #6A6A6A;
+      font-style: italic;
+      text-align: center;
+      margin-bottom: 12px;
+      line-height: 1.5;
+    }
+
+    /* AI Feedback card */
+    .feedback-card {
+      background: #EFEFEF;
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 16px;
+    }
+
+    .feedback-card .fb-title {
+      font-size: 12px;
+      color: #8A8A8A;
+      font-weight: 500;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .feedback-card .fb-text {
+      font-size: 13px;
+      color: #3A3A3A;
+      line-height: 1.6;
+      text-align: center;
+    }
+
+    /* Scan again button */
+    .btn-scan-again {
+      width: 100%;
+      padding: 15px;
+      background: #2D2B55;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+    .btn-scan-again:hover { opacity: 0.9; }
+    .btn-scan-again:active { transform: scale(0.98); }
+
+    /* SCREEN 4 (NO FOOD DETECTED) */
+
+    .no-food-preview {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .no-food-preview img { width: 100%; height: 100%; object-fit: cover; }
+
+    .no-food-card {
+      background: #FEE2E2;
+      border: 1px solid #FCA5A5;
+      border-radius: 12px;
+      padding: 20px 16px;
+      text-align: center;
+      margin-bottom: 14px;
+    }
+    .no-food-card .nf-emoji { font-size: 30px; margin-bottom: 8px; }
+    .no-food-card h3 { font-size: 15px; font-weight: 700; color: #B91C1C; margin-bottom: 6px; }
+    .no-food-card p { font-size: 13px; color: #7F1D1D; line-height: 1.5; }
+
+    .tips-card {
+      background: #EFEFEF;
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 16px;
+    }
+    .tips-card h4 {
+      font-size: 11px;
+      font-weight: 700;
+      color: #8A8A8A;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+    }
+    .tips-card ul { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+    .tips-card ul li { font-size: 13px; color: #4A4A4A; display: flex; gap: 8px; line-height: 1.4; }
+    .tips-card ul li::before { content: "•"; color: #27AE60; font-weight: 800; flex-shrink: 0; }
+  </style>
+</head>
+<body>
+<div class="phone">
+
+  <!-- App title -->
+  <div class="app-title">MealAssist</div>
+
+  <!-- SCREEN 1 (UPLOAD) -->
+  <div id="screen-upload" class="screen active">
+
+    <div class="error-banner" id="error-banner" role="alert">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+      <span id="error-text"></span>
+    </div>
+
+    <!-- Image preview / placeholder -->
+    <div class="upload-box" id="upload-box" role="button" tabindex="0" aria-label="Tap to upload image">
+      <div class="placeholder-icon" id="placeholder-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+          <circle cx="8.5" cy="8.5" r="1.5"/>
+          <polyline points="21 15 16 10 5 21"/>
+        </svg>
+      </div>
+      <img id="upload-preview" src="" alt="Preview" />
+    </div>
+
+    <input type="file" id="file-input" accept="image/*" />
+
+    <button class="btn-upload" id="btn-upload">Tap to Upload Image</button>
+
+    <span class="recent-label">Recent Images:</span>
+    <div class="recent-row" id="recent-row">
+      <div class="recent-thumb" id="rt-0"><div class="thumb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div><img id="rt-img-0" src="" alt=""/></div>
+      <div class="recent-thumb" id="rt-1"><div class="thumb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div><img id="rt-img-1" src="" alt=""/></div>
+      <div class="recent-thumb" id="rt-2"><div class="thumb-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div><img id="rt-img-2" src="" alt=""/></div>
+    </div>
+  </div>
+
+  <!-- SCREEN 2 (ANALYSING) -->
+  <div id="screen-analyse" class="screen">
+    <div class="analyse-preview">
+      <img id="analyse-img" src="" alt="Your meal" />
+    </div>
+
+    <div class="task-list">
+      <!-- Task 1 -->
+      <div class="task-row" id="task-row-1">
+        <div class="task-icon-wrap" id="task-icon-1">
+          <div class="spinner-icon"></div>
+        </div>
+        <div class="task-pill pill-yellow" id="task-pill-1">Detecting Food Items</div>
+      </div>
+      <!-- Task 2 -->
+      <div class="task-row" id="task-row-2">
+        <div class="task-icon-wrap" id="task-icon-2">
+          <div class="spinner-icon" style="border-top-color:#BDBDBD;border-color:#E0E0E0;animation:none;"></div>
+        </div>
+        <div class="task-pill pill-pending" id="task-pill-2">Retrieving Nutritional Data</div>
+      </div>
+      <!-- Task 3 -->
+      <div class="task-row" id="task-row-3">
+        <div class="task-icon-wrap" id="task-icon-3">
+          <div class="spinner-icon" style="border-top-color:#BDBDBD;border-color:#E0E0E0;animation:none;"></div>
+        </div>
+        <div class="task-pill pill-pending" id="task-pill-3">Describing Meal</div>
+      </div>
+      <!-- Task 4 -->
+      <div class="task-row" id="task-row-4">
+        <div class="task-icon-wrap" id="task-icon-4">
+          <div class="spinner-icon" style="border-top-color:#BDBDBD;border-color:#E0E0E0;animation:none;"></div>
+        </div>
+        <div class="task-pill pill-pending" id="task-pill-4">Generating Feedback</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN 3 (RESULTS) -->
+  <div id="screen-results" class="screen">
+    <div class="result-image">
+      <img id="result-img" src="" alt="Detection result" />
+    </div>
+
+    <div class="food-tags" id="food-tags"></div>
+
+    <!-- added: BLIP-generated meal caption -->
+    <div class="meal-caption" id="meal-caption"></div>
+
+    <div class="nutrition-grid">
+      <div class="nutrition-card"><div class="nut-label">Fibre</div><div class="nut-value" id="nut-fibre">—</div></div>
+      <div class="nutrition-card"><div class="nut-label">Sodium</div><div class="nut-value" id="nut-sodium">—</div></div>
+      <div class="nutrition-card"><div class="nut-label">Carbohydrates</div><div class="nut-value" id="nut-carb">—</div></div>
+      <div class="nutrition-card"><div class="nut-label">Fats</div><div class="nut-value" id="nut-fat">—</div></div>
+    </div>
+
+    <div class="feedback-card">
+      <div class="fb-title">AI Feedback</div>
+      <div class="fb-text" id="fb-text">Analysis complete. Nutritional values shown above are estimated based on the detected food items.</div>
+    </div>
+
+    <button class="btn-scan-again" id="btn-scan-again">Scan Another Meal</button>
+  </div>
+
+  <!-- SCREEN 4 (NO FOOD DETECTED) -->
+  <div id="screen-nofood" class="screen">
+    <div class="no-food-preview">
+      <img id="nf-img" src="" alt="Uploaded image" />
+    </div>
+    <div class="no-food-card">
+      <div class="nf-emoji">🔍</div>
+      <h3>No food items detected</h3>
+      <p>The AI could not find any recognisable food items in this image. Please try a different photo.</p>
+    </div>
+    <div class="tips-card">
+      <h4>Tips for a better result</h4>
+      <ul>
+        <li>Make sure the food is the main subject of the photo</li>
+        <li>Ensure lighting conditions is okay</li>
+        <li>Try shooting directly above the plate</li>
+        <li>Avoid images where food is mostly covered or out of frame</li>
+      </ul>
+    </div>
+    <button class="btn-scan-again" id="btn-scan-again-nf">Try a Different Photo</button>
+  </div>
+
+</div><!-- end .phone -->
+
+<script>
+  // Element refs
+  const fileInput      = document.getElementById('file-input');
+  const uploadBox      = document.getElementById('upload-box');
+  const btnUpload      = document.getElementById('btn-upload');
+  const uploadPreview  = document.getElementById('upload-preview');
+  const placeholderIcon= document.getElementById('placeholder-icon');
+  const errorBanner    = document.getElementById('error-banner');
+  const errorText      = document.getElementById('error-text');
+
+  const screens = {
+    upload:   document.getElementById('screen-upload'),
+    analyse:  document.getElementById('screen-analyse'),
+    results:  document.getElementById('screen-results'),
+    nofood:   document.getElementById('screen-nofood'),
+  };
+
+  let recentData = []; // stores base64 data URLs for recent images
+
+  // Screen switcher
+  function showScreen(name) {
+    Object.values(screens).forEach(s => s.classList.remove('active'));
+    screens[name].classList.add('active');
+  }
+
+  // Error helpers
+  function showError(msg) {
+    errorText.textContent = msg;
+    errorBanner.classList.add('active');
+    showScreen('upload');
+  }
+  function clearError() {
+    errorBanner.classList.remove('active');
+  }
+
+  // Recent thumbnail update
+  function addRecent(dataUrl) {
+    recentData.unshift(dataUrl);
+    if (recentData.length > 3) recentData.pop();
+    for (let i = 0; i < 3; i++) {
+      const thumb = document.getElementById('rt-' + i);
+      const img   = document.getElementById('rt-img-' + i);
+      if (recentData[i]) {
+        img.src = recentData[i];
+        img.classList.add('visible');
+        thumb.querySelector('.thumb-icon').style.display = 'none';
+        thumb.onclick = () => reprocessDataUrl(recentData[i]);
+      }
+    }
+  }
+
+  // Re-process a data URL from recent thumbnails
+  function reprocessDataUrl(dataUrl) {
+    clearError();
+    const blob = dataURLtoBlob(dataUrl);
+    startAnalysis(blob, dataUrl);
+  }
+
+  function dataURLtoBlob(dataUrl) {
+    const arr = dataUrl.split(',');
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) u8arr[n] = bstr.charCodeAt(n);
+    return new Blob([u8arr], { type: mime });
+  }
+
+  // Reset the analysing screen tasks
+  function resetTasks() {
+    const tasks = [
+      { id: 1, label: 'Detecting Food Items' },
+      { id: 2, label: 'Retrieving Nutritional Data' },
+      { id: 3, label: 'Describing Meal' },
+      { id: 4, label: 'Generating Feedback' },
+    ];
+    tasks.forEach(t => {
+      const pill = document.getElementById('task-pill-' + t.id);
+      const icon = document.getElementById('task-icon-' + t.id);
+      pill.textContent = t.label;
+      pill.className = 'task-pill pill-pending';
+      icon.innerHTML = '<div class="spinner-icon" style="border-top-color:#BDBDBD;border-color:#E0E0E0;animation:none;"></div>';
+    });
+  }
+
+  function markTaskActive(id) {
+    const pill = document.getElementById('task-pill-' + id);
+    const icon = document.getElementById('task-icon-' + id);
+    pill.className = 'task-pill pill-yellow';
+    icon.innerHTML = '<div class="spinner-icon"></div>';
+  }
+
+  function markTaskDone(id) {
+    const pill = document.getElementById('task-pill-' + id);
+    const icon = document.getElementById('task-icon-' + id);
+    pill.className = 'task-pill pill-green';
+    icon.innerHTML = `<div class="check-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+        stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <polyline points="8 12 11 15 16 9"/>
+      </svg></div>`;
+  }
+
+  //Animate tasks & fire API in parallel
+  function startAnalysis(fileBlob, previewDataUrl) {
+    // Show analyse screen
+    document.getElementById('analyse-img').src = previewDataUrl;
+    resetTasks();
+    showScreen('analyse');
+    markTaskActive(1);
+    setTimeout(() => { markTaskDone(1); markTaskActive(2); }, 600);
+    setTimeout(() => { markTaskDone(2); markTaskActive(3); }, 1200);
+    setTimeout(() => { markTaskDone(3); markTaskActive(4); }, 1800);
+
+    // API call
+    const form = new FormData();
+    form.append('image', fileBlob, 'meal.jpg');
+
+    fetch('/detect', { method: 'POST', body: form })
+      .then(r => r.json())
+      .then(data => {
+        // once the real response has arrived, mark task 4 done and move on to the results screen.
+        markTaskDone(4);
+        renderResults(data);
+      })
+      .catch(() => showError('Could not reach the server. Make sure app.py is running.'));
+  }
+
+  // Render results
+  const TAG_COLORS = ['tag-c0','tag-c1','tag-c2','tag-c3','tag-c4','tag-c5'];
+
+  function renderResults(data) {
+    if (data.error && !data.original_image) {
+      showError(data.error);
+      return;
+    }
+
+    if (data.error && data.original_image) {
+      document.getElementById('nf-img').src = 'data:image/jpeg;base64,' + data.original_image;
+      showScreen('nofood');
+      return;
+    }
+
+    // Annotated image with bounding boxes
+    document.getElementById('result-img').src = 'data:image/jpeg;base64,' + data.annotated_image;
+
+    // Food tag chips
+    const tagsWrap = document.getElementById('food-tags');
+    tagsWrap.innerHTML = '';
+    data.labels.forEach((label, i) => {
+      const span = document.createElement('span');
+      span.className = 'food-tag ' + TAG_COLORS[i % TAG_COLORS.length];
+      span.textContent = label;
+      tagsWrap.appendChild(span);
+    });
+
+    // BLIP-generated meal caption
+    const captionEl = document.getElementById('meal-caption');
+    if (data.caption) {
+      captionEl.textContent = '"' + data.caption + '"';
+      captionEl.style.display = 'block';
+    } else {
+      captionEl.textContent = '';
+      captionEl.style.display = 'none';
+    }
+
+    // use real nutrition data from the backend (API Ninjas). Calories and protein are premium-only on API Ninjas, so this app shows fibre, sodium, carbs and fat instead.
+    const nutrition = data.nutrition;
+    if (nutrition && nutrition.success) {
+      const t = nutrition.totals;
+      document.getElementById('nut-fibre').textContent  = t.fiber_g + ' g';
+      document.getElementById('nut-sodium').textContent = t.sodium_mg + ' mg';
+      document.getElementById('nut-carb').textContent   = t.carbohydrates_total_g + ' g';
+      document.getElementById('nut-fat').textContent    = t.fat_total_g + ' g';
+    } else {
+      // Nutrition lookup failed: show placeholders instead of crashing
+      document.getElementById('nut-fibre').textContent  = '—';
+      document.getElementById('nut-sodium').textContent = '—';
+      document.getElementById('nut-carb').textContent   = '—';
+      document.getElementById('nut-fat').textContent    = '—';
+    }
+
+    // use the real Ollama-generated feedback. Falls back to a simple note if the LLM feedback is missing (e.g. Ollama not running).
+    document.getElementById('fb-text').textContent =
+      data.feedback && data.feedback.trim()
+        ? data.feedback
+        : 'AI feedback is unavailable right now.';
+
+    showScreen('results');
+  }
+
+  // Wire up file input
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    clearError();
+    const reader = new FileReader();
+    reader.onload = e => {
+      const dataUrl = e.target.result;
+      // Show preview on upload box
+      uploadPreview.src = dataUrl;
+      uploadPreview.classList.add('visible');
+      placeholderIcon.style.display = 'none';
+      addRecent(dataUrl);
+      startAnalysis(file, dataUrl);
+    };
+    reader.readAsDataURL(file);
+    fileInput.value = '';
+  });
+
+  // Tap upload box or button
+  uploadBox.addEventListener('click', () => fileInput.click());
+  uploadBox.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') fileInput.click(); });
+  btnUpload.addEventListener('click', () => fileInput.click());
+
+  // Drag & drop onto upload box
+  uploadBox.addEventListener('dragover', e => { e.preventDefault(); uploadBox.style.opacity = '0.75'; });
+  uploadBox.addEventListener('dragleave', () => { uploadBox.style.opacity = ''; });
+  uploadBox.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadBox.style.opacity = '';
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    clearError();
+    const reader = new FileReader();
+    reader.onload = ev => {
+      uploadPreview.src = ev.target.result;
+      uploadPreview.classList.add('visible');
+      placeholderIcon.style.display = 'none';
+      addRecent(ev.target.result);
+      startAnalysis(file, ev.target.result);
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // Scan again buttons
+  document.getElementById('btn-scan-again').addEventListener('click', () => {
+    clearError();
+    showScreen('upload');
+  });
+  document.getElementById('btn-scan-again-nf').addEventListener('click', () => {
+    clearError();
+    showScreen('upload');
+  });
+</script>
+</body>
+</html>
