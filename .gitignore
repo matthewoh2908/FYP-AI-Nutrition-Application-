@@ -1,0 +1,36 @@
+# Model weights (large binaries; download or train separately, see README)
+*.pt
+*.pth
+*.onnx
+models/*
+!models/.gitkeep
+
+# The UEC FOOD 256 dataset and any converted YOLO-format copies of it
+# (large; download separately, see README)
+UECFOOD256/
+UECFOOD256_yolo/
+*_yolo/
+
+# Training run outputs (large; a few representative results are kept
+# under docs/training_results instead)
+runs/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Environment variables / secrets
+.env
+
+# Editor/IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

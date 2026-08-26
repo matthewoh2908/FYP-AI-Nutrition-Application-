@@ -1,0 +1,13 @@
+flask
+ultralytics
+transformers
+torch
+pillow
+requests
+numpy
+
+# Only needed for training / dataset conversion, not for running the app
+pyyaml
+
+# Only needed for running the test suite
+pytest
