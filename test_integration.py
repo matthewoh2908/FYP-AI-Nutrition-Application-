@@ -1,5 +1,4 @@
-
-# integration tests the /detect route end-to-end with mocked YOLO11, BLIP, nutrition API, and Ollama, while Flask routing, validation, and pipeline logic run for real.
+# This integration tests the /detect route end-to-end with simulated YOLO11, BLIP, nutrition API, and Ollama, while Flask routing, validation, and pipeline logic run in realtime.
 import stub_ml_deps  # noqa: F401
 import io
 import numpy as np
@@ -42,7 +41,7 @@ def make_fake_result(boxes, names):
     return result
 
 
-# request validation
+# Request validation
 
 def test_detect_rejects_request_with_no_file(client):
     response = client.post("/detect", data={})
@@ -64,7 +63,7 @@ def test_detect_rejects_disallowed_file_type(client):
     assert "Unsupported file type" in response.get_json()["error"]
 
 
-# no food detected path
+# No food detected path
 
 @patch("app.model")
 def test_detect_returns_friendly_error_when_nothing_found(mock_model, client):
@@ -79,7 +78,7 @@ def test_detect_returns_friendly_error_when_nothing_found(mock_model, client):
     assert "original_image" in body
 
 
-# full successful pipeline
+# Full successful pipeline
 
 @patch("app.get_llm_feedback")
 @patch("app.get_nutrition_data")
@@ -112,7 +111,7 @@ def test_detect_full_pipeline_success(mock_model, mock_caption, mock_nutrition, 
     assert "annotated_image" in body and len(body["annotated_image"]) > 0
 
 
-# regression test for the caption cross-check mechanism
+# Regression test for the caption cross-check
 
 @patch("app.get_llm_feedback")
 @patch("app.get_nutrition_data")
@@ -142,7 +141,7 @@ def test_caption_crosscheck_fixes_low_confidence_mislabel(
     assert all(d["label"] == "sushi" for d in body["detections"])
 
 
-# nutrition caption-fallback mechanism
+# Nutrition caption-fallback
 
 @patch("app.get_llm_feedback")
 @patch("app.get_caption")
@@ -160,7 +159,7 @@ def test_nutrition_falls_back_to_caption_when_dish_name_not_recognised(
 
     dish_name_response = MagicMock()
     dish_name_response.status_code = 200
-    dish_name_response.json.return_value = []  # dish name not recognised
+    dish_name_response.json.return_value = []  # Simulate no results for the specific dish name
 
     caption_response = MagicMock()
     caption_response.status_code = 200
@@ -176,7 +175,7 @@ def test_nutrition_falls_back_to_caption_when_dish_name_not_recognised(
     body = response.get_json()
 
     assert response.status_code == 200
-    assert mock_requests_get.call_count == 2  # dish-name attempt, then caption fallback
+    assert mock_requests_get.call_count == 2  # Dish-name attempt, then caption fallback
     assert body["nutrition"]["success"] is True
     assert body["nutrition"]["totals"]["fat_total_g"] == 12
     assert "Bak Kut Teh" in body["nutrition"]["note"]
