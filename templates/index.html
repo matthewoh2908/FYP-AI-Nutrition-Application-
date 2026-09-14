@@ -19,7 +19,7 @@
       padding: 32px 16px 64px;
     }
 
-    /* Phone shell */
+    /* Phone frame */
     .phone {
       width: 100%;
       max-width: 390px;
@@ -44,7 +44,7 @@
     .screen { display: none; padding: 0 16px 28px; }
     .screen.active { display: block; }
 
-    /* SCREEN 1 (UPLOAD) */
+    /* Upload screen */
 
     /* Image placeholder box */
     .upload-box {
@@ -137,7 +137,7 @@
     /* Hidden file input */
     #file-input { display: none; }
 
-    /* SCREEN 2 (ANALYSING) */
+    /* Analysing screen */
     .analyse-preview {
       width: 100%;
       aspect-ratio: 4 / 3;
@@ -194,7 +194,7 @@
     .pill-yellow { background: #F0B429; color: #1A1A1A; }
     .pill-pending { background: #BDBDBD; color: #6A6A6A; }
 
-    /* SCREEN 3 (RESULTS) */
+    /* Results screen */
 
     .result-image {
       width: 100%;
@@ -259,7 +259,7 @@
       color: #1A1A1A;
     }
 
-    /* added: meal caption from BLIP */
+    /* Meal caption from BLIP */
     .meal-caption {
       font-size: 13px;
       color: #6A6A6A;
@@ -308,7 +308,7 @@
     .btn-scan-again:hover { opacity: 0.9; }
     .btn-scan-again:active { transform: scale(0.98); }
 
-    /* SCREEN 4 (NO FOOD DETECTED) */
+    /* No food detected screen */
 
     .no-food-preview {
       width: 100%;
@@ -356,7 +356,7 @@
   <!-- App title -->
   <div class="app-title">MealAssist</div>
 
-  <!-- SCREEN 1 (UPLOAD) -->
+  <!-- Upload screen -->
   <div id="screen-upload" class="screen active">
 
     <div class="error-banner" id="error-banner" role="alert">
@@ -390,7 +390,7 @@
     </div>
   </div>
 
-  <!-- SCREEN 2 (ANALYSING) -->
+  <!-- Analysing screen -->
   <div id="screen-analyse" class="screen">
     <div class="analyse-preview">
       <img id="analyse-img" src="" alt="Your meal" />
@@ -428,7 +428,7 @@
     </div>
   </div>
 
-  <!-- SCREEN 3 (RESULTS) -->
+  <!-- Results screen -->
   <div id="screen-results" class="screen">
     <div class="result-image">
       <img id="result-img" src="" alt="Detection result" />
@@ -454,7 +454,7 @@
     <button class="btn-scan-again" id="btn-scan-again">Scan Another Meal</button>
   </div>
 
-  <!-- SCREEN 4 (NO FOOD DETECTED) -->
+  <!-- No food detected screen -->
   <div id="screen-nofood" class="screen">
     <div class="no-food-preview">
       <img id="nf-img" src="" alt="Uploaded image" />
@@ -476,7 +476,7 @@
     <button class="btn-scan-again" id="btn-scan-again-nf">Try a Different Photo</button>
   </div>
 
-</div><!-- end .phone -->
+</div>
 
 <script>
   // Element refs
@@ -582,9 +582,9 @@
       </svg></div>`;
   }
 
-  //Animate tasks & fire API in parallel
+  // Start analysis process
   function startAnalysis(fileBlob, previewDataUrl) {
-    // Show analyse screen
+    // Show the analysing screen with the preview image
     document.getElementById('analyse-img').src = previewDataUrl;
     resetTasks();
     showScreen('analyse');
@@ -600,7 +600,7 @@
     fetch('/detect', { method: 'POST', body: form })
       .then(r => r.json())
       .then(data => {
-        // once the real response has arrived, mark task 4 done and move on to the results screen.
+        // Once the API call is done, mark the last task as done and render results
         markTaskDone(4);
         renderResults(data);
       })
@@ -645,7 +645,7 @@
       captionEl.style.display = 'none';
     }
 
-    // use real nutrition data from the backend (API Ninjas). Calories and protein are premium-only on API Ninjas, so this app shows fibre, sodium, carbs and fat instead.
+    // Nutrition data
     const nutrition = data.nutrition;
     if (nutrition && nutrition.success) {
       const t = nutrition.totals;
@@ -661,7 +661,7 @@
       document.getElementById('nut-fat').textContent    = '—';
     }
 
-    // use the real Ollama-generated feedback. Falls back to a simple note if the LLM feedback is missing (e.g. Ollama not running).
+    // 
     document.getElementById('fb-text').textContent =
       data.feedback && data.feedback.trim()
         ? data.feedback
@@ -670,7 +670,7 @@
     showScreen('results');
   }
 
-  // Wire up file input
+  // File input change handler
   fileInput.addEventListener('change', () => {
     const file = fileInput.files[0];
     if (!file) return;
