@@ -1,4 +1,4 @@
-# reports how many training images/boxes exist per class after conversion to spot badly under-represented food classes before spending time training.
+# Reports how many training images/boxes exist per class after conversion to spot badly under-represented food classes before training.
 import argparse
 import yaml
 from pathlib import Path
