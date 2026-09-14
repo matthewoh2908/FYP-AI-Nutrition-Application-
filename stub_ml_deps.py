@@ -1,4 +1,4 @@
-# stubs heavy ML dependencies so app.py's non-ML logic can be tested without downloading model weights or installing the full ML stack.
+# This file is a stub to allow tests to run without requiring the actual dependencies (torch, transformers, ultralytics) to be installed. It simulates the necessary classes and functions used in app.py.
 import os
 import sys
 import types
@@ -8,7 +8,7 @@ from contextlib import contextmanager
 os.environ.setdefault("API_NINJAS_KEY", "test-key-not-a-real-key")
 from unittest.mock import MagicMock
 
-# torch test
+# Torch test
 fake_torch = types.ModuleType("torch")
 
 @contextmanager
