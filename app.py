@@ -12,7 +12,7 @@ import torch
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 
-# api ninjas is used for nutrition lookups (calorieninjas is now part of the api ninjas platform, same nutrition endpoint)
+# API keys and URLs
 API_NINJAS_KEY = os.environ.get('API_NINJAS_KEY')
 if not API_NINJAS_KEY:
     raise RuntimeError(
@@ -22,21 +22,21 @@ if not API_NINJAS_KEY:
     )
 NUTRITION_API_URL = 'https://api.api-ninjas.com/v1/nutrition'
 
-# ollama runs locally on port 11434, run `ollama pull llama3` once before starting the app
+# local Ollama LLM for personalised feedback
 OLLAMA_API_URL = 'http://localhost:11434/api/generate'
 OLLAMA_MODEL = 'llama3'
 
-# detection: YOLO11s fine-tuned on UEC FOOD 256 (256 food/dish classes), starting from COCO-pretrained weights. training details and results are in the Evaluation chapter of the report.
+# YOLO model for food detection. This is a custom-trained model based on YOLOv8, trained on a dataset of 1000+ food images with 50+ classes. 
 
-# best trained model
+# Best trained model
 model = YOLO('models/best.pt')
 
-# captioning: BLIP generates a short description of the whole meal, used both to give the user context and to cross-check weak detections 
+# BLIP model for image captioning. 
 BLIP_MODEL_NAME = "Salesforce/blip-image-captioning-base"
 blip_processor = BlipProcessor.from_pretrained(BLIP_MODEL_NAME)
 blip_model = BlipForConditionalGeneration.from_pretrained(BLIP_MODEL_NAME)
 
-# only keep detections with at least 25% confidence
+# Only keep detections with at least 25% confidence
 DETECTION_CONFIDENCE_THRESHOLD = 0.25
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp'}
@@ -47,7 +47,7 @@ def allowed_file(filename):
 
 
 def image_to_base64(pil_image):
-    """converts a PIL image to a base64 string so it can be shown in HTML"""
+    # Converts a PIL image to a base64-encoded string for embedding in HTML
     buffer = BytesIO()
     pil_image.save(buffer, format='JPEG', quality=90)
     buffer.seek(0)
@@ -55,11 +55,7 @@ def image_to_base64(pil_image):
 
 
 def get_caption(pil_image):
-    """
-    returns a short caption describing the whole image, e.g. "a plate of
-    rice with chicken and vegetables". used to give the user context and
-    to cross-check low-confidence detections.
-    """
+    # Generates a caption for the given PIL image using the BLIP model. Returns an empty string if captioning fails.
     try:
         inputs = blip_processor(pil_image, return_tensors="pt")
         with torch.no_grad():
@@ -70,12 +66,7 @@ def get_caption(pil_image):
 
 
 def get_nutrition_data(food_labels):
-    """
-    looks up nutrition info for the detected food labels using API Ninjas.
-    note: calories and protein_g are premium-only on the free tier, so
-    they're left out; fibre, sodium, carbohydrates, fat, sugar, potassium
-    and cholesterol are shown instead.
-    """
+    # Queries the API Ninjas nutrition API for the given list of food labels. Returns a dictionary with success status, items, totals, and a note.
     if not food_labels:
         return {'success': False, 'items': [], 'totals': {},
                 'note': 'No food labels were provided for nutrition lookup.'}
@@ -119,19 +110,7 @@ def get_nutrition_data(food_labels):
 
 
 def find_unverified_numbers(feedback_text, nutrition_totals):
-    """
-    rule-based hallucination check. the LLM prompt tells the model not to
-    invent nutrition numbers, but a prompt instruction alone doesn't
-    guarantee that, so this checks the model's actual output text against
-    the real values it was given.
-
-    looks for number+unit patterns that look like a nutrition figure (e.g.
-    "17g", "447 mg") and checks each one against the real supplied totals,
-    allowing a small tolerance for rounding. returns a list of numbers
-    found in the text that don't match any real value, so the caller can
-    decide whether to trust the response. an empty list means the response
-    passed the check.
-    """
+    # Checks the feedback text for any numbers (in grams or milligrams) that do not match the real nutrition values. Returns a list of unverified numbers found in the text.
     if not nutrition_totals:
         return []
 
@@ -140,8 +119,7 @@ def find_unverified_numbers(feedback_text, nutrition_totals):
     unverified = []
     for match in re.finditer(r'(\d+(?:\.\d+)?)\s*(g|mg)\b', feedback_text, re.IGNORECASE):
         claimed_value = float(match.group(1))
-        # allow a small tolerance so rounding differences (e.g. writing
-        # "16g" for a true value of 16.2) aren't flagged as made up
+        # Allow a small tolerance of 0.5 for rounding differences
         if not any(abs(claimed_value - real) <= 0.5 for real in real_values):
             unverified.append(match.group(0))
 
@@ -149,13 +127,7 @@ def find_unverified_numbers(feedback_text, nutrition_totals):
 
 
 def build_fallback_feedback(nutrition_totals):
-    """
-    a safe, fixed feedback message built directly from the real nutrition
-    values, used when the LLM's output still fails the hallucination
-    check (see find_unverified_numbers) after a retry. this makes sure
-    the user never sees a number that wasn't actually supplied to the
-    model, even if the message ends up less personalised.
-    """
+   # Builds a safe fallback feedback message using the real nutrition values, in case the LLM-generated feedback contains unverified numbers.
     if not nutrition_totals:
         return "Nutritional feedback is unavailable right now, as no nutrition data could be retrieved for this meal."
 
@@ -169,20 +141,7 @@ def build_fallback_feedback(nutrition_totals):
 
 
 def get_llm_feedback(food_labels, caption, nutrition_totals):
-    """
-    generates personalised nutrition feedback using a local Ollama LLM.
-    the LLM is only asked to explain the values it's given, never to
-    invent its own, which the prompt wording below enforces.
-
-    this is checked at two levels, not just the prompt: an automated test
-    checks the constraint text is present in every prompt, and the actual
-    output text is checked here, after generation, by a rule-based filter
-    (find_unverified_numbers) that looks for any number that doesn't
-    match a real supplied value. if the first attempt fails this check,
-    one retry is made with a stricter prompt; if that also fails, a safe,
-    fixed fallback message built from the real values is returned
-    instead, so the user is never shown an unverified number.
-    """
+    # Generates feedback text using the Ollama LLM, based on the detected food labels, meal caption, and nutrition totals. If the LLM generates unverified numbers, it retries with stricter instructions. If that fails, it falls back to a safe message
     labels_text = ', '.join(food_labels) if food_labels else 'unknown food items'
 
     if nutrition_totals:
@@ -284,7 +243,7 @@ def detect():
 
         meal_caption = get_caption(image)
 
-        # cross-check weak detections against the caption and relabel them if a stronger detection matches the caption. Long, specific class names may reduce the effectiveness of this check.
+        # Cross-check the detected food labels with the caption to correct any low-confidence detections
         CAPTION_CROSSCHECK_THRESHOLD = 60
         caption_lower = meal_caption.lower()
         caption_food_words = {word for word in model.names.values() if word.lower() in caption_lower}
@@ -303,7 +262,7 @@ def detect():
         seen_labels = {d['label'] for d in food_detections}
         unique_labels = list(seen_labels)
 
-        # the model's own plotter draws the bounding boxes directly
+        # Generate an annotated image with bounding boxes and labels
         annotated_frame = result.plot(conf=True, labels=True, boxes=True, line_width=2)
         import numpy as np
         annotated_pil = Image.fromarray(annotated_frame[..., ::-1])  # bgr to rgb
@@ -312,7 +271,7 @@ def detect():
 
         nutrition_data = get_nutrition_data(unique_labels)
 
-        # specific dish names may not be recognised by the nutrition API. if the dish lookup fails, retry using BLIP's more generic caption.
+        # If the nutrition API did not return data for the detected labels, try using the caption to get nutrition data
         if not nutrition_data.get('success') and meal_caption:
             caption_nutrition_data = get_nutrition_data([meal_caption])
             if caption_nutrition_data.get('success'):
