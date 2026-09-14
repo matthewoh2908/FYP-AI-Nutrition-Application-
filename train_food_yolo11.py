@@ -1,5 +1,4 @@
-# fine-tunes YOLO11s (pretrained on COCO) on the converted UEC FOOD 256 dataset.
-
+# Trains YOLO11s on a food dataset, starting from COCO-pretrained weights
 import argparse
 from ultralytics import YOLO
 
@@ -14,10 +13,10 @@ def main():
     parser.add_argument("--name", default="uecfood256_yolo11s")
     args = parser.parse_args()
 
-    # start from YOLO11's COCO-pretrained weights
+    # Start from YOLO11's COCO-pretrained weights
     model = YOLO("yolo11s.pt")
 
-    # model.train() already validates the best checkpoint and returns the metrics, so a separate model.val() is not needed.
+    # Train the model on the specified dataset
     results = model.train(
         data=args.data,
         epochs=args.epochs,
