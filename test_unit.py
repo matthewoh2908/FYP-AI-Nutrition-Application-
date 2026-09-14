@@ -1,7 +1,5 @@
-
-# unit tests: each test targets one function and seperated
-
-import stub_ml_deps  # noqa: F401
+# Unit tests for individual application functions
+import stub_ml_deps  # Sets up fake ML dependencies for testing
 import base64
 from io import BytesIO
 from unittest.mock import patch, MagicMock
@@ -13,7 +11,6 @@ import app
 
 
 # allowed_file()
-
 @pytest.mark.parametrize("filename", ["meal.jpg", "meal.JPG", "meal.jpeg", "meal.png", "meal.webp"])
 def test_allowed_file_accepts_valid_extensions(filename):
     assert app.allowed_file(filename) is True
@@ -29,18 +26,16 @@ def test_allowed_file_rejects_no_extension():
 
 
 # image_to_base64()
-
 def test_image_to_base64_roundtrip():
     original = Image.new("RGB", (10, 10), color=(255, 0, 0))
     encoded = app.image_to_base64(original)
 
-    # should be valid base64 that decodes back into a readable JPEG
+    # Should be valid base64 that decodes back into a readable JPEG
     decoded_bytes = base64.b64decode(encoded)
     decoded_image = Image.open(BytesIO(decoded_bytes))
     assert decoded_image.size == (10, 10)
 
 # get_nutrition_data()
-
 def test_get_nutrition_data_returns_early_for_empty_labels():
     result = app.get_nutrition_data([])
     assert result["success"] is False
@@ -61,7 +56,7 @@ def test_get_nutrition_data_success(mock_get):
 
     assert result["success"] is True
     assert result["totals"]["carbohydrates_total_g"] == 25
-    assert "calories" not in result["totals"]  # premium field excluded
+    assert "calories" not in result["totals"]  # Premium field excluded
 
 
 @patch("app.requests.get")
@@ -88,7 +83,6 @@ def test_get_nutrition_data_handles_network_failure(mock_get):
 
 
 # get_llm_feedback()
-
 @patch("app.requests.post")
 def test_get_llm_feedback_success(mock_post):
     mock_response = MagicMock()
@@ -99,10 +93,10 @@ def test_get_llm_feedback_success(mock_post):
     feedback = app.get_llm_feedback(["rice"], "a bowl of rice", {"carbohydrates_total_g": 25})
 
     assert feedback == "This meal looks balanced."
-    # confirm the prompt tells the LLM not to invent nutrition numbers
+    # Confirms that the prompt tells the LLM not to invent nutrition numbers
     sent_prompt = mock_post.call_args.kwargs["json"]["prompt"]
     assert "do not invent any new numbers" in sent_prompt
-    assert mock_post.call_count == 1  # no retry needed, output passed the check
+    assert mock_post.call_count == 1 
 
 
 @patch("app.requests.post")
@@ -116,9 +110,8 @@ def test_get_llm_feedback_handles_ollama_not_running(mock_post):
 
 
 # rule-based hallucination filter
-
 def test_find_unverified_numbers_detects_fabricated_value():
-    # regression test for the requirement that the LLM's actual output, not just the prompt instruction, is checked for invented nutrition numbers.
+    # Checks that fabricated nutrition values are detected
     real_totals = {"carbohydrates_total_g": 16.2, "fat_total_g": 13.4}
     text = "This meal has 16g carbs and 250mg of calcium, which is great."
     # 16g matches 16.2 within tolerance; 250mg does not match any real value
@@ -152,7 +145,7 @@ def test_get_llm_feedback_retries_once_then_succeeds(mock_post):
     feedback = app.get_llm_feedback(["rice"], "a bowl of rice", {"carbohydrates_total_g": 25})
 
     assert feedback == "This meal looks reasonably balanced."
-    assert mock_post.call_count == 2  # first attempt failed the check, retry succeeded
+    assert mock_post.call_count == 2  # Checks that the LLM retries once
 
 
 @patch("app.requests.post")
@@ -160,12 +153,12 @@ def test_get_llm_feedback_falls_back_to_safe_template_after_failed_retry(mock_po
     bad_response = MagicMock()
     bad_response.status_code = 200
     bad_response.json.return_value = {"response": "This has 999g of an invented nutrient."}
-    mock_post.return_value = bad_response  # both attempts return the same bad output
+    mock_post.return_value = bad_response  
 
     nutrition_totals = {"carbohydrates_total_g": 16.2, "fat_total_g": 13.4,
                          "fiber_g": 17, "sodium_mg": 447}
     feedback = app.get_llm_feedback(["Bak Kut Teh"], "a bowl of soup", nutrition_totals)
 
-    assert mock_post.call_count == 2  # initial attempt + one retry, then fallback
-    assert "999" not in feedback  # the fabricated number must never reach the user
-    assert "16.2" in feedback  # the fallback uses the real values directly
+    assert mock_post.call_count == 2
+    assert "999" not in feedback  # Incorrect value is removed
+    assert "16.2" in feedback  # Uses the actual nutrition value
